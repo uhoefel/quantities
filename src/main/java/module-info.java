@@ -21,7 +21,6 @@
 module eu.hoefel.quantity {
 
 	exports eu.hoefel.quantity;
-	exports eu.hoefel.coordinates.axes;
 
 	// ugh...
 	opens eu.hoefel.quantity to org.junit.platform.commons;
