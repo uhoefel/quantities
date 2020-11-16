@@ -13,15 +13,15 @@ public class Play {
 //		switch (q) {
 //		}
 		
-		Quantity<Float> q = new Quantity0D<>(3.0f);
+		Quantifiable<Float> q = new Quantity0D<>(3.0f);
 		System.out.println(q instanceof Quantity0D);
 		System.out.println(q instanceof QuantityMax3D);
 		System.out.println(q instanceof QuantityMax2D);
 		System.out.println(q instanceof QuantityMax1D);
 		
-		Quantity<Float> q2 = new Quantity1D<>(new Float[] { 3.0f });
+		Quantifiable<Float> q2 = new Quantity1D<>(new Float[] { 3.0f });
 		
-		System.out.println(q2 instanceof Quantity);
+		System.out.println(q2 instanceof Quantifiable);
 		System.out.println(q2 instanceof QuantityMax3D);
 		System.out.println(q2 instanceof QuantityMax2D);
 		System.out.println(q2 instanceof QuantityMax1D);
