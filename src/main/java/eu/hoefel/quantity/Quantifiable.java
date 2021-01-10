@@ -16,7 +16,6 @@ import eu.hoefel.unit.Units;
 import eu.hoefel.utils.Maths;
 
 public sealed interface Quantifiable<T> permits Quantity0D, Quantity1D, Quantity2D, Quantity3D {
-//public interface Quantifiable<T> {
 	
 	public T value();
 
@@ -25,10 +24,14 @@ public sealed interface Quantifiable<T> permits Quantity0D, Quantity1D, Quantity
 	default Unit axis(int dimension) {
 		return coords().axis(dimension).unit();
 	}
+	
+	// TODO:
+	// - reduce : ~6h
+	// - add/subtract/mul/divide/pow/root? : ~10h
+	// - putInContext(UnitContext); : ~6h
 
 	default Quantifiable<T> reduce(BiFunction<double[],Double,Double> costFunction, double... target) {
 		Objects.requireNonNull(target);
-		
 		
 		double val = costFunction.apply(value()[i], target[0]);
 		
@@ -41,9 +44,10 @@ public sealed interface Quantifiable<T> permits Quantity0D, Quantity1D, Quantity
 	}
 	
 	public static void main(String[] args) {
-		Quantifiable<double[]> bla = new Quantity1D(null, null);
+		double[] vals = {1,2,3,4};
+		Quantifiable<double[]> bla = new Quantity1D(vals, Unit.of("m s^-2"));
 		bla.reduce(null, null);
-		
+		bla.coords().axis(0).unit().baseUnits();
 		
 //		bla.coords().christoffelSymbol2ndKind(bla.value(), 1,1,1);
 
