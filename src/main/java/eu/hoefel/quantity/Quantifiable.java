@@ -11,6 +11,7 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
 import eu.hoefel.coordinates.CartesianCoordinates;
 import eu.hoefel.coordinates.CoordinateSystem;
 import eu.hoefel.coordinates.axes.Axes;
