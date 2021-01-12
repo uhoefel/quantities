@@ -4,9 +4,8 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import eu.hoefel.coordinates.CoordinateSystem;
-import eu.hoefel.coordinates.Coords;
-import eu.hoefel.science.units.Unit;
-import eu.hoefel.science.units.special.NaturalUnit;
+import eu.hoefel.unit.Unit;
+import eu.hoefel.unit.special.NaturalUnit;
 
 /**
  * This record is useful for holding information about
@@ -36,8 +35,6 @@ import eu.hoefel.science.units.special.NaturalUnit;
 public final record Quantity_2 <T extends Number> (String name, T value, CoordinateSystem coord) {
 
 	// TODO This should be an inline class
-	
-	// Quantity - sealed toplevel interface
 	
 	// maybe add (sealed) combining interfaces like QuantityMax1D (not a good name)
 	// that would be implemented by Quantity0D and Quantity1D. This would allow to
@@ -107,158 +104,6 @@ public final record Quantity_2 <T extends Number> (String name, T value, Coordin
 		this.extraUnits = new Unit[] { unit };
 	}
 
-	/**
-	 * Creates a new quantity with the given value and unit.
-	 * 
-	 * @param value the numerical value of this quantity. Note that coordinate
-	 *              transformations for single values will usually not work.
-	 * @param unit  the unit
-	 */
-	public Quantity_2(double value, Unit unit) {
-		this.name = "";
-		this.value = (T) (Double) value; // :-(
-		this.units = unit.symbols().get(0);
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[] { unit};
-	}
-
-	public Quantity_2(String name, double value, String units, Unit... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) (Double) value; // :-(
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = extraUnits;
-	}
-
-	public Quantity_2(String name, double value, String units, Unit[]... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) (Double) value; // :-(
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = Stream.of(extraUnits).flatMap(Stream::of).toArray(Unit[]::new);
-	}
-
-	public Quantity_2(String name, double[] value, String units) {
-		checkUnits(units);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(String name, double[] value, Unit unit) {
-		this.name = name;
-		this.value = (T) value;
-		this.units = unit.symbols().get(0);
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[] { unit };
-	}
-
-	public Quantity_2(String name, double[] value, String units, Unit... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = extraUnits;
-	}
-
-	public Quantity_2(String name, double[] value, String units, Unit[]... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = Stream.of(extraUnits).flatMap(Stream::of).toArray(Unit[]::new);
-	}
-
-	public Quantity_2(String name, double[][] value, String units) {
-		checkUnits(units);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(String name, double[][] value, Unit unit) {
-		this.name = name;
-		this.value = (T) value;
-		this.units = unit.symbols().get(0);
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[] { unit };
-	}
-
-	public Quantity_2(String name, double[][] value, String units, Unit... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = extraUnits;
-	}
-
-	public Quantity_2(String name, double[][] value, String units, Unit[]... extraUnits) {
-		checkUnits(units, extraUnits);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = Stream.of(extraUnits).flatMap(Stream::of).toArray(Unit[]::new);
-	}
-
-	public Quantity_2(String name, double[] value, CoordinateSystem coords) {
-		this.name = name;
-		this.value = (T) value;
-		this.units = null;
-		this.coord = coords;
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(String name, double[][] value, CoordinateSystem coords) {
-		this.name = name;
-		this.value = (T) value;
-		this.units = null;
-		this.coord = coords;
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(double[][] value, CoordinateSystem coords) {
-		this.name = "";
-		this.value = (T) value;
-		this.units = null;
-		this.coord = coords;
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(String name, double[][][] value, String units) {
-		checkUnits(units);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[0];
-	}
-
-	public Quantity_2(String name, double[][][] value, Unit unit) {
-		this.name = name;
-		this.value = (T) value;
-		this.units = unit.symbols().get(0);
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = new Unit[] { unit };
-	}
-
-	public Quantity_2(String name, double[][][] value, String units, Unit[]... extraUnits) {
-		checkUnits(units);
-		this.name = name;
-		this.value = (T) value;
-		this.units = units;
-		this.coord = CoordinateSystem.emptyCoordinateSystem();
-		this.extraUnits = Stream.of(extraUnits).flatMap(Stream::of).toArray(Unit[]::new);
-	}
 
 	
 	public Quantity_2 <T> to(Unit unit) {
@@ -276,37 +121,6 @@ public final record Quantity_2 <T extends Number> (String name, T value, Coordin
 		} else {
 			double[][] newValue = Unit.convert((double[][]) value(), units(), unit, extraUnits());
 			return new Quantity_2<T>(name(), newValue, units, extraUnits);
-		}
-	}
-
-	public Quantity_2 <T> to(String units) {
-		if (value().getClass() != double[][].class) {
-			throw new UnsupportedOperationException("currently, only 2d double arrays are supported");
-		}
-		double[][] newValue = Unit.convert((double[][]) value(), units(), units, extraUnits());
-		return new Quantity_2<T>(name(), newValue, units, coord(), extraUnits);
-	}
-
-	public Quantity_2 <T> to(String units, Unit[]... extraUnits) {
-		if (value().getClass() != double[][].class) {
-			throw new UnsupportedOperationException("currently, only 2d double arrays are supported");
-		}
-		double[][] newValue = Unit.convert((double[][]) value(), units(), units, extraUnits(), Stream.of(extraUnits).flatMap(Stream::of).toArray(Unit[]::new));
-		return new Quantity_2<T>(name(), newValue, units, coord(), extraUnits);
-	}
-	
-	public Quantity_2<T> to(CoordinateSystem coord) {
-		if (value().getClass() != double[][].class) {
-			throw new UnsupportedOperationException("currently, only 2d double arrays are supported");
-		}
-		double[][] newValue = Unit.convert((double[][]) value(), units(), unit, extraUnits());
-		newValue = CoordinateSystem.transform((double[][]) newValue, coord(), coord);
-		return new Quantity_2<T>(newValue, units, coord, unit);
-	}
-
-	private static final void checkUnits(String units, Unit[]... extraUnits) {
-		if (!Unit.isValid(units, extraUnits)) {
-			throw new IllegalArgumentException("Illegal Unit: " + units);
 		}
 	}
 

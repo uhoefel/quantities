@@ -13,6 +13,13 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(value);
 		Objects.requireNonNull(coords);
+		
+		if (value.length != coords.dimension()) {
+			throw new IllegalArgumentException(("Dimensionality of the given values does not match the "
+					+ "dimensionality of the coordinate system (values: %d point(s) with %d dimensions "
+					+ "each vs. a coordinate system with %d dimensions)")
+					.formatted(value[0].length, value.length, coords.dimension()));
+		}
 	}
 
 	public Quantity2D(double[][] value, CoordinateSystem coords) {
