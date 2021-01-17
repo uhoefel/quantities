@@ -22,7 +22,19 @@ import eu.hoefel.unit.UnitPrefix;
 import eu.hoefel.unit.Units;
 import eu.hoefel.utils.Maths;
 
+/**
+ * 
+ * @author Udo Hoefel
+ *
+ * @param <T>
+ */
 public sealed interface Quantifiable<T> {
+	
+	// TODO:
+	// - reduce : ~6h
+	// - add/subtract/mul/divide/pow/root? : ~10h
+	// - putInContext(UnitContext);/where to put names? axis? : ~6h
+	// - merge 1D types to 2D coord?
 	
 	public record Quantity0D(String name, Double value, Unit unit) implements Quantifiable<Double> {
 		
@@ -39,11 +51,6 @@ public sealed interface Quantifiable<T> {
 		@Override
 		public CoordinateSystem coords() {
 			return new CartesianCoordinates(new Axis(unit));
-		}
-
-		@Override
-		public Unit axis(int dimension) {
-			return unit();
 		}
 	}
 
@@ -90,20 +97,72 @@ public sealed interface Quantifiable<T> {
 			this(value, new CartesianCoordinates(value.length, Axes.withUnits(units)));
 		}
 	}
-	
+
+	/**
+	 * Gets the values/numbers of the quantity. This may be a single number,
+	 * multiple numbers, an <i>n</i>D-point or multiple <i>n</i>D-points.
+	 * 
+	 * @return the numerical value(s)
+	 */
 	public T value();
 
+	/**
+	 * Gets the coordinate system associated with the quantity. Note that the
+	 * {@link CoordinateSystem#axes() axes} of the coordinate system contain
+	 * information about the {@link Unit units} of each
+	 * {@link CoordinateSystem#axis(int) axis}.
+	 * 
+	 * @return the coordinate system
+	 */
 	public CoordinateSystem coords();
-	
-	default Unit axis(int dimension) {
-		return coords().axis(dimension).unit();
+
+	/**
+	 * Gets the axis of the specified dimension.
+	 * 
+	 * @param dimension the dimension of which to get the axis. Needs to be &gt;0
+	 *                  and less than the dimensionality of the coordinate system
+	 *                  (as the axes indices start with 0, not 1)
+	 * @return the axis of the specified dimension
+	 * @throws IllegalArgumentException if the specified axis dimension is out of
+	 *                                  range
+	 */
+	default Axis axis(int dimension) {
+		if (dimension < 0 || dimension >= coords().dimension()) {
+			throw new IllegalArgumentException("The requested axis dimension needs to be within [0,%d] but was %d."
+					.formatted(coords().dimension(), dimension));
+		}
+		return coords().axis(dimension);
 	}
-	
-	// TODO:
-	// - reduce : ~6h
-	// - add/subtract/mul/divide/pow/root? : ~10h
-	// - putInContext(UnitContext);/where to put names? axis? : ~6h
-	
+
+	/**
+	 * Reduces the numerical representation(s) of the current quantity to have a
+	 * value as close as possible to the specified target values by potentially
+	 * changing prefixes of the units on the axes. For determining the best prefix,
+	 * the following rules apply:
+	 * <ol>
+	 * <li>A larger (absolute) exponent implies a higher "cost". Note that each of
+	 * the values is put in the format <i>a</i>&times;10<sup><i>b</i></sup> with
+	 * <i>a</i> ranging between 1 and 9.99… beforehand.
+	 * <li>Furthermore, the magnitude of the difference between the target value and
+	 * the value of <i>a</i> is inflicting a minor penalty (i.e., the exponent
+	 * penalty as described in step 1 dominates).
+	 * <li>The prefix with the smallest maximal cost is chosen, i.e. the prefix that
+	 * minimizes the absolute maximum value of the exponents.
+	 * </ol>
+	 * 
+	 * @param targets the values to try to get close to. May not be null. The number
+	 *                of targets may be a single value, which is then taken as the
+	 *                default value, i.e. it will work for any <i>n</i>D coordinate
+	 *                system. Alternatively, the number of targets need to match the
+	 *                dimensionality of the coordinate system exactly, in which case
+	 *                each of the target values is matched to its corresponding
+	 *                coordinate system axis and only applied there. Works best for
+	 *                values between 1 and 9.99…
+	 * @return a new quantifiable with adjusted units on the axis and
+	 *         correspondingly adjusted numerical values
+	 * @throws IllegalArgumentException if the number of targets does not adhere to
+	 *                                  the constraints specified above
+	 */
 	default Quantifiable<T> reduce(double... targets) {
 		Objects.requireNonNull(targets);
 		
@@ -114,6 +173,8 @@ public sealed interface Quantifiable<T> {
 							.formatted(targets.length, coords().dimension()));
 		}
 
+		// we pick a simple cost function. In principle, one could also use something
+		// more sophisticated here, but I am not sure it is necessary.
 		Map<Integer, Function<double[],Double>> costFunctions = new HashMap<>();
 		if (targets.length == 1) {
 			// use as default
@@ -124,21 +185,38 @@ public sealed interface Quantifiable<T> {
 				costFunctions.put(i, d -> calculateCostForArray(d, target));
 			}
 		}
+
 		return reduce(costFunctions);
 	}
 
-	private static Double calculateCostForArray(double[] t, double target) {
+	/**
+	 * Calculates the cost for an array of values via a simple cost function.
+	 * 
+	 * @param array  the array
+	 * @param target the reference value
+	 * @return the cost
+	 */
+	private static Double calculateCostForArray(double[] array, double target) {
 		int targetExponent = Maths.getBase10Exponent(target);
 		double targetMantissa = target / Math.pow(10, targetExponent);
 		
-		double[] costs = new double[t.length];
+		double[] costs = new double[array.length];
 		for (int i = 0; i < costs.length; i++) {
-			costs[i] = calculateSimpleCostForSinglePoint(t[i], targetMantissa, targetExponent);
+			costs[i] = calculateSimpleCostForSinglePoint(array[i], targetMantissa, targetExponent);
 		}
 		return Maths.max(costs);
 	}
-	
-	
+
+	/**
+	 * Calculates a cost for a single point by calculating some simple measure of
+	 * "distance" of the given point to the specified reference.
+	 * 
+	 * @param value          the point to calculate the cost respectively distance
+	 *                       for
+	 * @param targetMantissa the reference mantissa, between 1 and 9.99…
+	 * @param targetExponent the reference exponent
+	 * @return the "cost" or "distance"
+	 */
 	private static double calculateSimpleCostForSinglePoint(double value, double targetMantissa, int targetExponent) {
 		// always between 0 and 308
 		int exponent = Math.abs(targetExponent - Maths.getBase10Exponent(value));
@@ -149,20 +227,46 @@ public sealed interface Quantifiable<T> {
 		return 0.1*mantissa + exponent;
 	}
 
+	/**
+	 * Reduces the numerical representation(s) of the current quantity to have a
+	 * value associated with the lowest cost as calculated by the specified cost
+	 * functions by changing the prefixes of the unit, if possible.
+	 * 
+	 * @param costFunctions the cost functions to be applied to the axes. The key of
+	 *                      the map corresponds to the dimension of a axis. Use of
+	 *                      {@link Axes#DEFAULT_DIMENSION} is supported. May not be
+	 *                      null.
+	 * @return a new quantifiable with adjusted units on the axis and
+	 *         correspondingly adjusted numerical values
+	 */
 	@SuppressWarnings("unchecked")
-	private Quantifiable<T> reduce(Map<Integer, Function<double[],Double>> costFunctions) {
+	default Quantifiable<T> reduce(Map<Integer, Function<double[], Double>> costFunctions) {
+		Objects.requireNonNull(costFunctions);
+
 		// TODO once pattern matching is in replace this with an (exhaustive) switch
 		if (this instanceof Quantity0D q0d) {
-			return (Quantifiable<T>) reduce0D(q0d, costFunctions);
+			return (Quantifiable<T>) reduce0D(q0d, costFunctions.getOrDefault(0, costFunctions.get(Axes.DEFAULT_DIMENSION)));
 		} else if (this instanceof Quantity1D q1d) {
 			return (Quantifiable<T>) reduce1D(q1d, costFunctions);
 		} else if (this instanceof Quantity2D q2d) {
 			return (Quantifiable<T>) reduce2D(q2d, costFunctions);
 		}
-		throw new AssertionError("Unsupported quantifiable!");
+		throw new AssertionError("Unsupported quantifiable!"); // cannot be thrown, Quantifiable is sealed
 	}
 
-	private static Quantity0D reduce0D(Quantity0D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
+	/**
+	 * Reduces the numerical representation(s) of the 0D quantity to have a value
+	 * associated with the lowest cost as calculated by the specified cost function
+	 * by changing the prefixes of the unit, if possible.
+	 * 
+	 * @param quantity      the quantity for which the numerical values should be
+	 *                      modified
+	 * @param costFunctions the cost function to be applied to the axis. May not be
+	 *                      null.
+	 * @return a new quantity with an adjusted unit on the axis and a
+	 *         correspondingly adjusted numerical value
+	 */
+	private static Quantity0D reduce0D(Quantity0D quantity, Function<double[], Double> costFunction) {
 		Unit unit = quantity.unit();
 		var trafos = potentialTransformations(unit);
 		double cost = Double.POSITIVE_INFINITY;
@@ -170,8 +274,7 @@ public sealed interface Quantifiable<T> {
 		
 		for (var trafo : trafos.entrySet()) {
 			Double proposedTransformedValues = trafo.getValue().apply(quantity.value());
-			double proposedCost = costFunctions.getOrDefault(0, costFunctions.get(Axes.DEFAULT_DIMENSION))
-					.apply(new double[] { proposedTransformedValues });
+			double proposedCost = costFunction.apply(new double[] { proposedTransformedValues });
 			if (proposedCost < cost) {
 				transformedValues = proposedTransformedValues;
 				unit = trafo.getKey();
@@ -315,7 +418,7 @@ public sealed interface Quantifiable<T> {
 	}
 
 	private static Map<Unit, Function<Double,Double>> potentialTransformations(Unit unit) {
-		UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0));
+		UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0)).values().toArray(UnitInfo[]::new);
 
 		int indexOfPrefixableUnit = -1;
 		for (int i = 0; i < infos.length; i++) {
@@ -344,7 +447,7 @@ public sealed interface Quantifiable<T> {
 				extraUnits.add(infos[i].unit());
 				if (i == indexOfPrefixableUnit) {
 					Function<Double,Double> toBase = infos[i].unit()::convertToBaseUnits;
-					if (infos[i].unit().canUseFactor()) {
+					if (infos[i].unit().isConversionLinear()) {
 						UnitInfo ui = infos[i];
 						Unit u = ui.unit();
 						toBase = value -> value * u.factor(ui.symbol());
