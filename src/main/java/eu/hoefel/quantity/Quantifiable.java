@@ -228,9 +228,9 @@ public sealed interface Quantifiable<T> {
 	}
 
 	/**
-	 * Reduces the numerical representation(s) of the current quantity to have a
-	 * value associated with the lowest cost as calculated by the specified cost
-	 * functions by changing the prefixes of the unit, if possible.
+	 * Reduces the numerical representation(s) of the current quantity to have
+	 * value(s) associated with the lowest cost as calculated by the specified cost
+	 * functions by changing the prefixes of the units for each axis, if possible.
 	 * 
 	 * @param costFunctions the cost functions to be applied to the axes. The key of
 	 *                      the map corresponds to the dimension of a axis. Use of
@@ -285,17 +285,43 @@ public sealed interface Quantifiable<T> {
 		return new Quantity0D(quantity.name(), transformedValues, unit);
 	}
 
+	/**
+	 * Reduces the numerical representation(s) of the 1D quantity to have values
+	 * associated with the lowest cost as calculated by the specified cost function
+	 * by changing the prefixes of the unit for each axis, if possible.
+	 * 
+	 * @param quantity      the quantity for which the numerical values should be
+	 *                      modified (either multiple 1D points or a single
+	 *                      <i>n</i>D point, depending on the coordinate system)
+	 * @param costFunctions the cost functions to be applied to the axes. The key of
+	 *                      the map corresponds to the dimension of a axis. Use of
+	 *                      {@link Axes#DEFAULT_DIMENSION} is supported. May not be
+	 *                      null.
+	 * @return a new quantity with adjusted units on the axes and correspondingly
+	 *         adjusted numerical values
+	 */
 	private static Quantity1D reduce1D(Quantity1D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
-		int dimension = coords.dimension();
-		if (dimension == 1) {
+		if (coords.dimension() == 1) {
 			// n values for 1D
-			return reduceN0DPoints(quantity, costFunctions);
+			return reduceN0DPoints(quantity, costFunctions.getOrDefault(0, costFunctions.get(Axes.DEFAULT_DIMENSION)));
 		}
+		// 1 value for nD
 		return reduceOneNDPoint(quantity, costFunctions);
 	}
 
-	public static Quantity1D reduceN0DPoints(Quantity1D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
+	/**
+	 * Reduces the numerical representations of the 1D quantity to have values
+	 * associated with the lowest cost as calculated by the specified cost function
+	 * by changing the prefixes of the unit, if possible.
+	 * 
+	 * @param quantity the quantity for which the numerical values should be
+	 *                 modified (needs to have a 1D coordinate system)
+	 * @param function the cost function to be applied to the axis. May not be null.
+	 * @return a new quantity with an adjusted unit on the axis and correspondingly
+	 *         adjusted numerical values
+	 */
+	public static Quantity1D reduceN0DPoints(Quantity1D quantity, Function<double[], Double> function) {
 		CoordinateSystem coords = quantity.coords();
 		Unit unit = coords.axis(0).unit();
 		var trafos = potentialTransformations(unit);
@@ -307,8 +333,7 @@ public sealed interface Quantifiable<T> {
 			for (int i = 0; i < transformedValues.length; i++) {
 				proposedTransformedValues[i] = trafo.getValue().apply(quantity.value()[i]);
 			}
-			double proposedCost = costFunctions.getOrDefault(0, costFunctions.get(Axes.DEFAULT_DIMENSION))
-					.apply(proposedTransformedValues);
+			double proposedCost = function.apply(proposedTransformedValues);
 			if (proposedCost < cost) {
 				transformedValues = proposedTransformedValues;
 				unit = trafo.getKey();
@@ -326,6 +351,22 @@ public sealed interface Quantifiable<T> {
 		return new Quantity1D(quantity.name(), transformedValues, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
+	/**
+	 * Reduces the numerical representation of the 1D quantity to have values
+	 * associated with the lowest cost as calculated by the specified cost functions
+	 * by changing the prefixes of the units for each axis, if possible.
+	 * 
+	 * @param quantity      the quantity for which the numerical values should be
+	 *                      modified (needs to have a <i>n</i>D coordinate system,
+	 *                      with <i>n</i> representing the length of the numerical
+	 *                      values in the quantity)
+	 * @param costFunctions the cost functions to be applied to the axes. The key of
+	 *                      the map corresponds to the dimension of a axis. Use of
+	 *                      {@link Axes#DEFAULT_DIMENSION} is supported. May not be
+	 *                      null.
+	 * @return a new quantity with adjusted units on the axes and correspondingly
+	 *         adjusted numerical values
+	 */
 	private static Quantity1D reduceOneNDPoint(Quantity1D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
 		int dimension = coords.dimension();
@@ -361,6 +402,20 @@ public sealed interface Quantifiable<T> {
 		return new Quantity1D(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
+	/**
+	 * Reduces the numerical representations of the 2D quantity to have values
+	 * associated with the lowest cost as calculated by the specified cost functions
+	 * by changing the prefixes of the units for each axis, if possible.
+	 * 
+	 * @param quantity      the quantity for which the numerical values should be
+	 *                      modified
+	 * @param costFunctions the cost functions to be applied to the axes. The key of
+	 *                      the map corresponds to the dimension of a axis. Use of
+	 *                      {@link Axes#DEFAULT_DIMENSION} is supported. May not be
+	 *                      null.
+	 * @return a new quantity with adjusted units on the axes and correspondingly
+	 *         adjusted numerical values
+	 */
 	private static Quantity2D reduce2D(Quantity2D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
 		int dimension = coords.dimension();
@@ -399,7 +454,24 @@ public sealed interface Quantifiable<T> {
 		return new Quantity2D(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
+	// TODO It would certainly be good to make the method below more robust. What if
+	// no constructor that takes Object... args is defined? What if it is not a
+	// record?
+	/**
+	 * Gets the components of the coordinate system record, except the axes, and
+	 * create a new instance of the coordinate system if possible with the resolved
+	 * record components, in which the axes are replaced by the given axes.
+	 * 
+	 * @param coords the coordinate system to take the arguments from
+	 * @param axes   the axes to use for the new instance of the coordinate system
+	 * @return a copy of the coordinate system except that the given axes are used
+	 *         for it
+	 */
 	private static Object[] argsWithNewAxes(CoordinateSystem coords, NavigableSet<Axis> axes) {
+		if (!coords.getClass().isRecord()) {
+			throw new UnsupportedOperationException("Currently, only coordinate systems that arecords are supported.");
+		}
+
 		var components = coords.getClass().getRecordComponents();
 		List<Object> args = new ArrayList<>();
 		for (int j = 0; j < components.length; j++) {
@@ -417,12 +489,20 @@ public sealed interface Quantifiable<T> {
 		return args.toArray();
 	}
 
+	/**
+	 * Finds the potential transformations of the given unit, i.e., by a simple
+	 * change of the prefixes, if allowed.
+	 * 
+	 * @param unit the unit to check for alternative prefixes
+	 * @return for each different prefix its corresponding unit and the function to
+	 *         be applied to values to get to that unit
+	 */
 	private static Map<Unit, Function<Double,Double>> potentialTransformations(Unit unit) {
 		UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0)).values().toArray(UnitInfo[]::new);
 
 		int indexOfPrefixableUnit = -1;
 		for (int i = 0; i < infos.length; i++) {
-			if (mayChangePrefix(infos[i])) {
+			if (mayChangePrefix(infos[i].unit())) {
 				indexOfPrefixableUnit = i;
 				break;
 			}
@@ -480,13 +560,16 @@ public sealed interface Quantifiable<T> {
 		return Collections.unmodifiableMap(transformations);
 	}
 
-	private static boolean mayChangePrefix(UnitInfo info) {
-		Unit unit = info.unit();
-		for (String symbol : unit.symbols()) {
-			if (unit.prefixAllowed(symbol)) {
-				return true;
-			}
-		}
-		return false;
+	/**
+	 * Checks whether any of the symbols of a unit allows prefixes. Note that this
+	 * method covers the edge case of {@link eu.hoefel.unit.si.SiBaseUnit.KILOGRAM
+	 * kilogram}, of which the primary reference symbol happens to be ""kg" (which
+	 * contains already a prefix) and not "g".
+	 * 
+	 * @param unit the unit to check
+	 * @return true if any of the symbols allows a prefix
+	 */
+	private static boolean mayChangePrefix(Unit unit) {
+		return unit.symbols().stream().anyMatch(unit::prefixAllowed);
 	}
 }
