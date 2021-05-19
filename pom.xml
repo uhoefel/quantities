@@ -17,7 +17,7 @@
 		<uhoefel.git.root>scm:git:ssh://git@github.com/uhoefel/</uhoefel.git.root>
 		<junit.jupiter.version>5.7.0</junit.jupiter.version>
 		<junit.platform.version>1.7.0</junit.platform.version>
-		<jdk.version>15</jdk.version>
+		<jdk.version>16</jdk.version>
 		<jvm.extraArgs>--enable-preview</jvm.extraArgs>
 	</properties>
 
@@ -76,6 +76,16 @@
 			<groupId>eu.hoefel</groupId>
 			<artifactId>coordinates</artifactId>
 			<version>1.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>eu.hoefel</groupId>
+			<artifactId>units</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>eu.hoefel</groupId>
+			<artifactId>utils</artifactId>
+			<version>0.2.1</version>
 		</dependency>
 	</dependencies>
 

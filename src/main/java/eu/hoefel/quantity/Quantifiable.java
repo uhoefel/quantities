@@ -1,6 +1,8 @@
 package eu.hoefel.quantity;
 
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,41 +12,79 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
+import java.util.function.UnaryOperator;
 
 import eu.hoefel.coordinates.CartesianCoordinates;
 import eu.hoefel.coordinates.CoordinateSystem;
 import eu.hoefel.coordinates.axes.Axes;
 import eu.hoefel.coordinates.axes.Axis;
 import eu.hoefel.unit.Unit;
+import eu.hoefel.unit.UnitContext;
 import eu.hoefel.unit.UnitInfo;
 import eu.hoefel.unit.UnitPrefix;
 import eu.hoefel.unit.Units;
 import eu.hoefel.utils.Maths;
 
 /**
+ * Interface representing all quantities, i.e., numerical values with an
+ * associated coordinate system.
+ * <p>
+ * Note that this approach is in contrast to all other quantity-packages I am
+ * aware of, not only in Java, but also in python etc., which all combine a
+ * quantity with a unit, not a coordinate system. The advantage of using a
+ * coordinate system instead of just a unit is that more metadata is conveyed by
+ * the former, opening the avenue to, e.g., more automated plotting.
  * 
  * @author Udo Hoefel
- *
- * @param <T>
+ * @param <T> the type of the contained numerical values. May be a primitive,
+ *            their wrapper classes, {@link BigInteger}, {@link BigDecimal} or
+ *            arrays thereof.
  */
 public sealed interface Quantifiable<T> {
 	
 	// TODO:
-	// - reduce : ~6h
 	// - add/subtract/mul/divide/pow/root? : ~10h
 	// - putInContext(UnitContext);/where to put names? axis? : ~6h
 	// - merge 1D types to 2D coord?
-	
-	public record Quantity0D(String name, Double value, Unit unit) implements Quantifiable<Double> {
-		
+	// - vectors? matrices? maybe record Point(double[])/Vector(Point, double[] vector)/Matrix(Point, double[][] matrix)?
+    // - need to use Number for flexibility
+    // - QuantitySupplier, QuantityFunction etc?
+
+	/**
+	 * Represents a 0D quantity, i.e. a single numerical value with a unit.
+	 * 
+	 * @param name  the name of this quantity, not null
+	 * @param value the numerical value. This type will be converted to a double
+	 *              once generics can handle primitives, so it may not be null.
+	 * @param unit  the unit of the numerical value, not null
+	 * 
+	 * @author Udo Hoefel
+	 */
+	public record Quantity0D<T extends Number>(String name, T value, Unit unit) implements Quantifiable<T> {
+
+		/**
+		 * Constructor.
+		 * 
+		 * @param name  the name of this quantity, not null
+		 * @param value the numerical value. This type will be converted to a double
+		 *              once generics can handle primitives, so it may not be null.
+		 * @param unit  the unit of the numerical value, not null
+		 */
 		public Quantity0D {
 			Objects.requireNonNull(name);
 			Objects.requireNonNull(value);
 			Objects.requireNonNull(unit);
 		}
 
-		public Quantity0D(double value, Unit unit) {
+		/**
+		 * Constructor for an unnamed 0D quantity. Note that not providing a name may hamper the useful
+		 * 
+		 * @param value the numerical value. This type will be converted to a double
+		 *              once generics can handle primitives, so it may not be null.
+		 * @param unit  the unit of the numerical value, not null
+		 */
+		public Quantity0D(T value, Unit unit) {
 			this("", value, unit);
 		}
 
@@ -54,7 +94,15 @@ public sealed interface Quantifiable<T> {
 		}
 	}
 
-	public record Quantity1D(String name, double[] value, CoordinateSystem coords) implements Quantifiable<double[]> {
+	public record Quantity1D<T extends Number>(String name, T[] value, CoordinateSystem coords) implements Quantifiable<T[]> {
+		
+		// how to handle vector/matrix/tensor fields?
+		// maybe smth akin to
+		// public Quantity1D(String name, double[] value, CoordinateSystem coords, T[] tensor, T[] units) {
+		// problem: 5 args is a bit much
+		// maybe we don't need it at all?
+		// we could just build up maybe? smth like record Vector(Quantifiable<?> pos, Quantifiable<?> vector)
+		// this decouples the positions from the vector though, which is not so nice, but maybe could be catched by the constructor
 
 		public Quantity1D {
 			Objects.requireNonNull(name);
@@ -69,12 +117,12 @@ public sealed interface Quantifiable<T> {
 			}
 		}
 
-		public Quantity1D(double[] value, Unit unit) {
+		public Quantity1D(T[] value, Unit unit) {
 			this("", value, new CartesianCoordinates(1, new Axis(unit)));
 		}
 	}
 	
-	public record Quantity2D(String name, double[][] value, CoordinateSystem coords) implements Quantifiable<double[][]> {
+	public record Quantity2D<T extends Number>(String name, T[][] value, CoordinateSystem coords) implements Quantifiable<T[][]> {
 
 		public Quantity2D {
 			Objects.requireNonNull(name);
@@ -89,14 +137,22 @@ public sealed interface Quantifiable<T> {
 			}
 		}
 
-		public Quantity2D(double[][] value, CoordinateSystem coords) {
+		public Quantity2D(T[][] value, CoordinateSystem coords) {
 			this("", value, coords);
 		}
 
-		public Quantity2D(double[][] value, Unit... units) {
+		public Quantity2D(T[][] value, Unit... units) {
 			this(value, new CartesianCoordinates(value.length, Axes.withUnits(units)));
 		}
 	}
+
+	/**
+	 * Gets the name of the quantity. You can generally think of it as the name you
+	 * would give this quantity in a plot.
+	 * 
+	 * @return the name of the contained quantity
+	 */
+	public String name();
 
 	/**
 	 * Gets the values/numbers of the quantity. This may be a single number,
@@ -175,7 +231,7 @@ public sealed interface Quantifiable<T> {
 
 		// we pick a simple cost function. In principle, one could also use something
 		// more sophisticated here, but I am not sure it is necessary.
-		Map<Integer, Function<double[],Double>> costFunctions = new HashMap<>();
+		Map<Integer, ToDoubleFunction<Number[]>> costFunctions = new HashMap<>();
 		if (targets.length == 1) {
 			// use as default
 			costFunctions.put(Axes.DEFAULT_DIMENSION, d -> calculateCostForArray(d, targets[0]));
@@ -196,7 +252,7 @@ public sealed interface Quantifiable<T> {
 	 * @param target the reference value
 	 * @return the cost
 	 */
-	private static Double calculateCostForArray(double[] array, double target) {
+	private static double calculateCostForArray(Number[] array, double target) {
 		int targetExponent = Maths.getBase10Exponent(target);
 		double targetMantissa = target / Math.pow(10, targetExponent);
 		
@@ -217,12 +273,12 @@ public sealed interface Quantifiable<T> {
 	 * @param targetExponent the reference exponent
 	 * @return the "cost" or "distance"
 	 */
-	private static double calculateSimpleCostForSinglePoint(double value, double targetMantissa, int targetExponent) {
+	private static double calculateSimpleCostForSinglePoint(Number value, double targetMantissa, int targetExponent) {
 		// always between 0 and 308
-		int exponent = Math.abs(targetExponent - Maths.getBase10Exponent(value));
+		int exponent = Math.abs(targetExponent - Maths.getBase10Exponent(value.doubleValue()));
 		
 		// always between 1.0 and 9.99...
-		double mantissa = Math.abs(targetMantissa - value / Math.pow(10, exponent));
+		double mantissa = Math.abs(targetMantissa - value.doubleValue() / Math.pow(10, exponent));
 		
 		return 0.1*mantissa + exponent;
 	}
@@ -240,15 +296,15 @@ public sealed interface Quantifiable<T> {
 	 *         correspondingly adjusted numerical values
 	 */
 	@SuppressWarnings("unchecked")
-	default Quantifiable<T> reduce(Map<Integer, Function<double[], Double>> costFunctions) {
+	default Quantifiable<T> reduce(Map<Integer, ToDoubleFunction<Number[]>> costFunctions) {
 		Objects.requireNonNull(costFunctions);
 
 		// TODO once pattern matching is in replace this with an (exhaustive) switch
-		if (this instanceof Quantity0D q0d) {
+		if (this instanceof Quantity0D<?> q0d) {
 			return (Quantifiable<T>) reduce0D(q0d, costFunctions.getOrDefault(0, costFunctions.get(Axes.DEFAULT_DIMENSION)));
-		} else if (this instanceof Quantity1D q1d) {
+		} else if (this instanceof Quantity1D<?> q1d) {
 			return (Quantifiable<T>) reduce1D(q1d, costFunctions);
-		} else if (this instanceof Quantity2D q2d) {
+		} else if (this instanceof Quantity2D<?> q2d) {
 			return (Quantifiable<T>) reduce2D(q2d, costFunctions);
 		}
 		throw new AssertionError("Unsupported quantifiable!"); // cannot be thrown, Quantifiable is sealed
@@ -266,23 +322,25 @@ public sealed interface Quantifiable<T> {
 	 * @return a new quantity with an adjusted unit on the axis and a
 	 *         correspondingly adjusted numerical value
 	 */
-	private static Quantity0D reduce0D(Quantity0D quantity, Function<double[], Double> costFunction) {
+	private static <T extends Number> Quantity0D<T> reduce0D(Quantity0D<T> quantity, ToDoubleFunction<Number[]> costFunction) {
 		Unit unit = quantity.unit();
 		var trafos = potentialTransformations(unit);
 		double cost = Double.POSITIVE_INFINITY;
-		Double transformedValues = quantity.value;
+		T transformedValues = quantity.value;
 		
 		for (var trafo : trafos.entrySet()) {
-			Double proposedTransformedValues = trafo.getValue().apply(quantity.value());
-			double proposedCost = costFunction.apply(new double[] { proposedTransformedValues });
+			@SuppressWarnings("unchecked")
+            T proposedTransformedValues = (T) trafo.getValue().apply(quantity.value());
+			
+			double proposedCost = costFunction.applyAsDouble(new Number[] { proposedTransformedValues });
 			if (proposedCost < cost) {
 				transformedValues = proposedTransformedValues;
 				unit = trafo.getKey();
 				cost = proposedCost;
 			}
 		}
-		
-		return new Quantity0D(quantity.name(), transformedValues, unit);
+		 
+		return new Quantity0D<T>(quantity.name(), transformedValues, unit);
 	}
 
 	/**
@@ -300,7 +358,7 @@ public sealed interface Quantifiable<T> {
 	 * @return a new quantity with adjusted units on the axes and correspondingly
 	 *         adjusted numerical values
 	 */
-	private static Quantity1D reduce1D(Quantity1D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
+	private static <T extends Number> Quantity1D<T> reduce1D(Quantity1D<T> quantity, Map<Integer, ToDoubleFunction<Number[]>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
 		if (coords.dimension() == 1) {
 			// n values for 1D
@@ -317,23 +375,27 @@ public sealed interface Quantifiable<T> {
 	 * 
 	 * @param quantity the quantity for which the numerical values should be
 	 *                 modified (needs to have a 1D coordinate system)
-	 * @param function the cost function to be applied to the axis. May not be null.
+	 * @param costFunction the cost function to be applied to the axis. May not be null.
 	 * @return a new quantity with an adjusted unit on the axis and correspondingly
 	 *         adjusted numerical values
 	 */
-	public static Quantity1D reduceN0DPoints(Quantity1D quantity, Function<double[], Double> function) {
+    private static <T extends Number> Quantity1D<T> reduceN0DPoints(Quantity1D<T> quantity, ToDoubleFunction<Number[]> costFunction) {
 		CoordinateSystem coords = quantity.coords();
 		Unit unit = coords.axis(0).unit();
 		var trafos = potentialTransformations(unit);
 		double cost = Double.POSITIVE_INFINITY;
-		double[] transformedValues = quantity.value().clone();
+		T[] transformedValues = Maths.deepCopyPrimitiveArray(quantity.value());
+		
 		
 		for (var trafo : trafos.entrySet()) {
-			double[] proposedTransformedValues = quantity.value().clone();
+			T[] proposedTransformedValues = Maths.deepCopyPrimitiveArray(quantity.value());
 			for (int i = 0; i < transformedValues.length; i++) {
-				proposedTransformedValues[i] = trafo.getValue().apply(quantity.value()[i]);
+			    @SuppressWarnings("unchecked")
+			    T transformedValue = (T) trafo.getValue().apply(quantity.value()[i]);
+
+				proposedTransformedValues[i] = transformedValue;
 			}
-			double proposedCost = function.apply(proposedTransformedValues);
+			double proposedCost = costFunction.applyAsDouble(proposedTransformedValues);
 			if (proposedCost < cost) {
 				transformedValues = proposedTransformedValues;
 				unit = trafo.getKey();
@@ -348,7 +410,7 @@ public sealed interface Quantifiable<T> {
 		// the coord sys record may have additional parameters that we have to respect
 		Object[] args = argsWithNewAxes(coords, coordAxes);
 		
-		return new Quantity1D(quantity.name(), transformedValues, CoordinateSystem.from(coordSymbol, coordClass, args));
+		return new Quantity1D<T>(quantity.name(), transformedValues, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
 	/**
@@ -367,21 +429,22 @@ public sealed interface Quantifiable<T> {
 	 * @return a new quantity with adjusted units on the axes and correspondingly
 	 *         adjusted numerical values
 	 */
-	private static Quantity1D reduceOneNDPoint(Quantity1D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
+	private static <T extends Number> Quantity1D<T> reduceOneNDPoint(Quantity1D<T> quantity, Map<Integer, ToDoubleFunction<Number[]>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
 		int dimension = coords.dimension();
 
 		List<Axis> axes = new ArrayList<>();
-		double[] vals = quantity.value().clone();
+		T[] vals = Maths.deepCopyPrimitiveArray(quantity.value());
 		for (int i = 0; i < dimension; i++) {
 			Unit unit = coords.axis(i).unit();
 			double cost = Double.POSITIVE_INFINITY;
 
 			var trafos = potentialTransformations(unit);
 			for (var trafo : trafos.entrySet()) {
-				Double proposedTransformedValues = trafo.getValue().apply(quantity.value()[i]);
+				@SuppressWarnings("unchecked")
+                T proposedTransformedValues = (T) trafo.getValue().apply(quantity.value()[i]);
 				double proposedCost = costFunctions.getOrDefault(i, costFunctions.get(Axes.DEFAULT_DIMENSION))
-						.apply(new double[] { proposedTransformedValues });
+						.applyAsDouble(new Number[] { proposedTransformedValues });
 				if (proposedCost < cost) {
 					vals[i] = proposedTransformedValues;
 					unit = trafo.getKey();
@@ -399,7 +462,7 @@ public sealed interface Quantifiable<T> {
 		// the coord sys record may have additional parameters that we have to respect
 		Object[] args = argsWithNewAxes(coords, coordAxes);
 		
-		return new Quantity1D(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
+		return new Quantity1D<T>(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
 	/**
@@ -416,24 +479,26 @@ public sealed interface Quantifiable<T> {
 	 * @return a new quantity with adjusted units on the axes and correspondingly
 	 *         adjusted numerical values
 	 */
-	private static Quantity2D reduce2D(Quantity2D quantity, Map<Integer, Function<double[],Double>> costFunctions) {
+	private static <T extends Number> Quantity2D<T> reduce2D(Quantity2D<T> quantity, Map<Integer, ToDoubleFunction<Number[]>> costFunctions) {
 		CoordinateSystem coords = quantity.coords();
 		int dimension = coords.dimension();
 
 		List<Axis> axes = new ArrayList<>();
-		double[][] vals = Maths.deepCopyPrimitiveArray(quantity.value());
+		T[][] vals = Maths.deepCopyPrimitiveArray(quantity.value());
 		for (int i = 0; i < dimension; i++) {
 			Unit unit = coords.axis(i).unit();
 			double cost = Double.POSITIVE_INFINITY;
 
 			var trafos = potentialTransformations(unit);
 			for (var trafo : trafos.entrySet()) {
-				double[] proposedTransformedValues = quantity.value()[i].clone();
+				T[] proposedTransformedValues = Maths.deepCopyPrimitiveArray(quantity.value()[i]);
 				for (int j = 0; j < vals[i].length; j++) {
-					proposedTransformedValues[j] = trafo.getValue().apply(proposedTransformedValues[j]);
+				    @SuppressWarnings("unchecked")
+                    T proposedTransformedValue = (T) trafo.getValue().apply(proposedTransformedValues[j]);
+					proposedTransformedValues[j] = proposedTransformedValue;
 				}
 				double proposedCost = costFunctions.getOrDefault(i, costFunctions.get(Axes.DEFAULT_DIMENSION))
-						.apply(proposedTransformedValues);
+						.applyAsDouble(proposedTransformedValues);
 				if (proposedCost < cost) {
 					vals[i] = proposedTransformedValues;
 					unit = trafo.getKey();
@@ -451,7 +516,7 @@ public sealed interface Quantifiable<T> {
 		// the coord sys record may have additional parameters that we have to respect
 		Object[] args = argsWithNewAxes(coords, coordAxes);
 		
-		return new Quantity2D(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
+		return new Quantity2D<T>(quantity.name(), vals, CoordinateSystem.from(coordSymbol, coordClass, args));
 	}
 
 	// TODO It would certainly be good to make the method below more robust. What if
@@ -489,15 +554,15 @@ public sealed interface Quantifiable<T> {
 		return args.toArray();
 	}
 
-	/**
+    /**
 	 * Finds the potential transformations of the given unit, i.e., by a simple
 	 * change of the prefixes, if allowed.
 	 * 
 	 * @param unit the unit to check for alternative prefixes
 	 * @return for each different prefix its corresponding unit and the function to
-	 *         be applied to values to get to that unit
+	 *         be applied to values to get to that unit. Note that the functions preserve the actual type, if possible.
 	 */
-	private static Map<Unit, Function<Double,Double>> potentialTransformations(Unit unit) {
+	private static Map<Unit, UnaryOperator<Number>> potentialTransformations(Unit unit) {
 		UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0)).values().toArray(UnitInfo[]::new);
 
 		int indexOfPrefixableUnit = -1;
@@ -510,10 +575,10 @@ public sealed interface Quantifiable<T> {
 
 		if (indexOfPrefixableUnit == -1) {
 			// so no prefixable unit found -> return old unit
-			return Map.of(unit, Function.identity());
+			return Map.of(unit, UnaryOperator.identity());
 		}
 
-		Map<Unit, Function<Double,Double>> transformations = new HashMap<>();
+		Map<Unit, UnaryOperator<Number>> transformations = new HashMap<>();
 		Set<UnitPrefix> allowedPrefixes = new HashSet<>(infos[indexOfPrefixableUnit].unit().prefixes());
 		
 		// make sure we have the identity prefix in there
@@ -522,17 +587,17 @@ public sealed interface Quantifiable<T> {
 		for (UnitPrefix prefix : allowedPrefixes) {
 			StringBuilder fullSymbol = new StringBuilder();
 			List<Unit> extraUnits = new ArrayList<>();
-			Function<Double,Double> func = null;
+			UnaryOperator<Number> func = null;
 			for (int i = 0; i < infos.length; i++) {
 				extraUnits.add(infos[i].unit());
 				if (i == indexOfPrefixableUnit) {
-					Function<Double,Double> toBase = infos[i].unit()::convertToBaseUnits;
+				    Unit infoUnit = infos[i].unit();
+				    UnaryOperator<Number> toBase = n -> convertNumber(n, in -> infoUnit.convertToBaseUnits(in.doubleValue()));
 					if (infos[i].unit().isConversionLinear()) {
 						UnitInfo ui = infos[i];
 						Unit u = ui.unit();
-						toBase = value -> value * u.factor(ui.symbol());
-					} else {
-						toBase = infos[i].unit()::convertToBaseUnits;
+						double factor = u.factor(ui.symbol());
+						toBase = n -> convertNumber(n, in -> in.doubleValue() * factor);
 					}
 
 					// we need to find the symbol that allows to change the prefix, which might not
@@ -546,7 +611,9 @@ public sealed interface Quantifiable<T> {
 					String symbolWithPrefix = prefix.symbols().get(0) + symbol;
 					fullSymbol.append(symbolWithPrefix);
 					Unit targetUnit = Unit.of(symbolWithPrefix, new Unit[] { infos[i].unit() });
-					func = toBase.andThen(targetUnit::convertFromBaseUnits);
+					UnaryOperator<Number> finalToBase = toBase;
+					UnaryOperator<Number> fromBase = n -> convertNumber(n, in -> targetUnit.convertFromBaseUnits(in.doubleValue()));
+					func = n -> finalToBase.andThen(fromBase).apply(n);
 				} else {
 					String symbol = infos[i].symbol() + (infos[i].exponent() == 1 ? "" : "^" + infos[i].exponent());
 					fullSymbol.append(symbol);
@@ -558,6 +625,58 @@ public sealed interface Quantifiable<T> {
 		}
 
 		return Collections.unmodifiableMap(transformations);
+	}
+
+	private static <T extends Number> T convertNumber(T t, ToDoubleFunction<T> conversion) {
+	    double conversionResult = conversion.applyAsDouble(t);
+	    
+	    if (t instanceof Double) {
+            @SuppressWarnings("unchecked")
+            T ret = (T) Double.valueOf(conversionResult);
+            return ret;
+        } else if (t instanceof Integer) {
+            long roundedResult = Math.round(conversionResult);
+            if (roundedResult > Integer.MAX_VALUE) {
+                throw new ArithmeticException("Rounding result is not within Integer range!");
+            }
+            @SuppressWarnings("unchecked")
+            T ret = (T) Integer.valueOf((int) roundedResult);
+            return ret;
+        } else if (t instanceof Long) {
+            @SuppressWarnings("unchecked")
+            T ret = (T) Long.valueOf(Math.round(conversionResult));
+            return ret;
+        } else if (t instanceof Float) {
+            @SuppressWarnings("unchecked")
+            T ret = (T) Float.valueOf((float) conversionResult);
+            return ret;
+        } else if (t instanceof Short) {
+            long roundedResult = Math.round(conversionResult);
+            if (roundedResult > Short.MAX_VALUE) {
+                throw new ArithmeticException("Rounding result is not within Short range!");
+            }
+            @SuppressWarnings("unchecked")
+            T ret = (T) Short.valueOf((short) conversionResult);
+            return ret;
+        } else if (t instanceof Byte) {
+            long roundedResult = Math.round(conversionResult);
+            if (roundedResult > Byte.MAX_VALUE) {
+                throw new ArithmeticException("Rounding result is not within Short range!");
+            }
+            @SuppressWarnings("unchecked")
+            T ret = (T) Byte.valueOf((byte) conversionResult);
+            return ret;
+        } else if (t instanceof BigDecimal) {
+            @SuppressWarnings("unchecked")
+            T ret = (T) new BigDecimal(String.valueOf(conversionResult));
+            return ret;
+        } else if (t instanceof BigInteger) {
+            @SuppressWarnings("unchecked")
+            T ret = (T) new BigInteger(String.valueOf(conversionResult));
+            return ret;
+        }
+	    
+	    throw new AssertionError("Unhandled Number!");
 	}
 
 	/**
@@ -572,4 +691,19 @@ public sealed interface Quantifiable<T> {
 	private static boolean mayChangePrefix(Unit unit) {
 		return unit.symbols().stream().anyMatch(unit::prefixAllowed);
 	}
+
+	default Quantifiable<T> inContext(UnitContext context) {
+		// change axes? only change name of quantity?
+		return null;
+	}
+	
+	
+	
+	
+	public static void main(String[] args) {
+        var bla = new Quantity1D<BigDecimal>(new BigDecimal[] { new BigDecimal("30.75") }, Unit.of("kg"));
+        System.out.println(bla.reduce(1));
+        bla.value();
+        
+    }
 }

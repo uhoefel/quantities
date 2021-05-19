@@ -21,11 +21,9 @@
 module eu.hoefel.quantity {
 
 	exports eu.hoefel.quantity;
-
+	
 	// ugh...
 	opens eu.hoefel.quantity to org.junit.platform.commons;
-
-	requires java.logging;
 
 	requires org.junit.jupiter.api;
 	
