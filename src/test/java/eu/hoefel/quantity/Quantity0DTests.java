@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import eu.hoefel.coordinates.CartesianCoordinates;
+import eu.hoefel.coordinates.CoordinateSystem;
 import eu.hoefel.unit.Unit;
 
 /**
@@ -21,7 +22,8 @@ class Quantity0DTests {
     void testInputValidation() {
         assertThrows(NullPointerException.class, () -> new Quantity0D(null, 12., new CartesianCoordinates(1)));
         assertThrows(NullPointerException.class, () -> new Quantity0D("name", null, new CartesianCoordinates(1)));
-        assertThrows(NullPointerException.class, () -> new Quantity0D("name", 12., null));
+        assertThrows(NullPointerException.class, () -> new Quantity0D("name", 12., (CoordinateSystem) null));
+        assertThrows(NullPointerException.class, () -> new Quantity0D("name", 12., (Unit) null));
     }
     
     @DisplayName("apply")

@@ -2,6 +2,7 @@ package eu.hoefel.quantity;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.DoubleUnaryOperator;
@@ -116,6 +117,42 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
                             + "system with %d dimensions)",
                     value.length, value[0].length, coords.dimension()));
         }
+    }
+
+    /**
+     * Merges the given {@link Quantity1D quantities} into one {@link Quantity2D}
+     * with {@link Quantity2D#order() order} 1, by taking the first given non-null
+     * quantity as reference, i.e., all other quantities are converted to this
+     * reference quantity.
+     * 
+     * @param quantities the quantities to merge. Null elements are discarded while
+     *                   merging, as are quantities without a value being present
+     *                   (i.e., their {@link #value() value} is of length 0). All
+     *                   elements need to be convertible to the coordinate system of
+     *                   the first non-null element with its
+     *                   {@link Quantity1D#value() value} being of length &gt; 0,
+     *                   which serves as the reference quantity also for
+     *                   constructing the returned merged quantity. May not be null.
+     * @return the quantity containing the merged quantities. Never returns null.
+     * @throws NoSuchElementException if no non-null {@link Quantity1D} was given
+     */
+    public static final Quantity2D from(Quantity1D... quantities) {
+        Objects.requireNonNull(quantities);
+
+        Quantity1D refQuantity = Arrays.stream(quantities)
+                .filter(Objects::nonNull)
+                .filter(q -> q.value().length > 0)
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No valid Quantity1D given!"));
+
+        double[][] newValues = Arrays.stream(quantities)
+                .filter(Objects::nonNull)
+                .filter(q -> q.value().length > 0)
+                .map(q -> q.to(q.name(), refQuantity.coords()))
+                .map(Quantity::value)
+                .toArray(double[][]::new);
+
+        return new Quantity2D(refQuantity.name(), newValues, refQuantity.coords());
     }
 
     /**

@@ -2,6 +2,7 @@ package eu.hoefel.quantity;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.DoubleUnaryOperator;
@@ -98,6 +99,37 @@ public record Quantity1D(String name, double[] value, CoordinateSystem coords) i
                     + "multidimensional coordinate system), but the given values are not of the "
                     + "correct dimensionality (point: %d vs. coords: %d)".formatted(value.length, coords.dimension()));
         }
+    }
+
+    /**
+     * Merges the given {@link Quantity0D quantities} into one {@link Quantity1D}
+     * with {@link Quantity1D#order() order} 0, by taking the first given non-null
+     * quantity as reference, i.e., all other quantities are converted to this
+     * reference quantity.
+     * 
+     * @param quantities the quantities to merge. Null elements are discarded while
+     *                   merging. All elements need to be convertible to the
+     *                   coordinate system of the first non-null element, which
+     *                   serves as the reference quantity also for constructing the
+     *                   returned merged quantity. May not be null.
+     * @return the quantity containing the merged quantities. Never returns null.
+     * @throws NoSuchElementException if no non-null {@link Quantity0D} was given
+     */
+    public static final Quantity1D from(Quantity0D... quantities) {
+        Objects.requireNonNull(quantities);
+
+        Quantity0D refQuantity = Arrays.stream(quantities)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No valid Quantity0D given!"));
+
+        double[] newValues = Arrays.stream(quantities)
+                .filter(Objects::nonNull)
+                .map(q -> q.to(q.name(), refQuantity.coords()))
+                .mapToDouble(Quantity::value)
+                .toArray();
+        
+        return new Quantity1D(refQuantity.name(), newValues, refQuantity.coords());
     }
 
     /**

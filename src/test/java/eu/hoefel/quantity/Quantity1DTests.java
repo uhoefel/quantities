@@ -1,8 +1,11 @@
 package eu.hoefel.quantity;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,5 +75,26 @@ class Quantity1DTests {
         var quantityApproaching1e18 = quantityApproaching1.approach(1e18);
         assertArrayEquals(new double[] { 1e18, 1e18, 1e18, 1e18 }, quantityApproaching1e18.value(), 1e-15);
         assertEquals("m^-3", quantityApproaching1e18.axis(0).unit().symbols().get(0));
+    }
+
+    @DisplayName("from")
+    @Test
+    void testFrom() {
+        var q0 = new Quantity0D("bla", 12, Unit.of("m"));
+        var q1 = new Quantity0D(22, Unit.of("m"));
+        var q2 = new Quantity0D(45122, Unit.of("nm"));
+        var q3 = new Quantity0D(0.0002, Unit.of("Gm"));
+        
+        var result = assertDoesNotThrow(() -> Quantity1D.from(q0, q1, q2, q3));
+        assertEquals("bla", result.name());
+        assertArrayEquals(new double[] { 12, 22, 4.5122e-5, 2e5 }, result.value(), 1e-15);
+        assertEquals(Unit.of("m"), result.coords().axis(0).unit());
+
+        assertThrows(NullPointerException.class, () -> Quantity1D.from((Quantity0D[]) null));
+        
+        assertThrows(NoSuchElementException.class, () -> Quantity1D.from());
+        assertThrows(NoSuchElementException.class, () -> Quantity1D.from(new Quantity0D[] { null }));
+        
+        assertDoesNotThrow(() -> Quantity1D.from(null, q0, q1, q2, q3));
     }
 }
