@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.Function;
 
 import eu.hoefel.utils.Types;
 
@@ -18,7 +19,24 @@ import eu.hoefel.utils.Types;
  * 
  * @author Udo Hoefel
  */
-public sealed interface MethodReferenceResolver extends Serializable permits SerializableFunction<?, ?> {
+public sealed interface MethodReferenceResolver extends Serializable {
+	
+	/**
+	 * Represents a function that accepts one argument and produces a result.
+	 * 
+	 * <p>
+	 * Note that this functional interface is intended to be used with method
+	 * references.
+	 * 
+	 * @param <T> the type of the input to the function
+	 * @param <U> the type of the result of the function
+	 */
+	// TODO this should be in its own class, but then the compilation fails (╯°□°)╯︵ ┻━┻
+	@FunctionalInterface
+	public non-sealed static interface SerializableFunction<T, U> extends Function<T, U>, MethodReferenceResolver {
+	    // nothing to add here, the method to be implemented is in Function, and the
+	    // MethodReferenceResolver has default implementations which are fine
+	}
 
 	/**
 	 * Gets the serialized representation of the method reference.

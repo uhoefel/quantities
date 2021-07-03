@@ -9,7 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import eu.hoefel.coordinates.CartesianCoordinates;
-import eu.hoefel.quantity.function.SerializableFunction;
+import eu.hoefel.quantity.function.MethodReferenceResolver.SerializableFunction;
 import eu.hoefel.unit.Unit;
 
 /** Tests for {@link VectorField}. */

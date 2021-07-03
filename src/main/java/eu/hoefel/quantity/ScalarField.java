@@ -5,7 +5,7 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import eu.hoefel.coordinates.CoordinateSystem;
-import eu.hoefel.quantity.function.SerializableFunction;
+import eu.hoefel.quantity.function.MethodReferenceResolver.SerializableFunction;
 import eu.hoefel.utils.Types;
 
 /**
