@@ -142,9 +142,9 @@ public record VectorField<T>(String name, SerializableFunction<T, double[]> fiel
             throw new UnsupportedOperationException(
                     "Currently only scalars, vectors and matrices can be applied to a vector field.");
         }
-        
+
         Quantity<?> transformedPosition = position.to(position.name(), fieldInputCoords);
-        
+
         Class<?> classOfValue = Types.unboxedClass(transformedPosition.value().getClass());
         Class<?> fieldInputType = fieldInputType(field);
         if (classOfValue != fieldInputType && classOfValue != fieldInputType.arrayType()) {
@@ -152,7 +152,7 @@ public record VectorField<T>(String name, SerializableFunction<T, double[]> fiel
                     + ", but the field can only handle " + fieldInputType.getSimpleName() + " or "
                     + fieldInputType.arrayType().getSimpleName() + " as input.");
         }
-        
+
         // TODO use pattern matching once available
         double[][] vectors;
         if (transformedPosition instanceof Quantity0D q0d) {
@@ -172,7 +172,7 @@ public record VectorField<T>(String name, SerializableFunction<T, double[]> fiel
         } else {
             throw new AssertionError("should never get here");
         }
-        
+
         return new Quantity2D(name, vectors, fieldOutputCoords);
     }
 }

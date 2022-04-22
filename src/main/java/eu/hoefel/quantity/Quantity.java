@@ -171,7 +171,7 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
      * @throws IllegalArgumentException if the number of targets does not adhere to
      *                                  the constraints specified above
      */
-	default Quantity<T> approach(double... targets) {
+    default Quantity<T> approach(double... targets) {
         Objects.requireNonNull(targets);
 
         if (targets.length != coords().dimension() && targets.length != 1) {
@@ -195,7 +195,7 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
         }
 
         return approach(costFunctions);
-	}
+    }
 
     /**
      * Changes the numerical representation(s) of the current quantity to have
@@ -219,96 +219,96 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
      * @param target the reference value
      * @return the cost
      */
-	private static double calculateCostForArray(double[] array, double target) {
-		int targetExponent = Maths.getBase10Exponent(target);
-		double targetMantissa = target / Math.pow(10, targetExponent);
-		
-		return Arrays.stream(array)
-		             .map(val -> calculateSimpleCostForSinglePoint(val, targetMantissa, targetExponent))
-		             .max()
-		             .orElse(Double.NaN);
-	}
+    private static double calculateCostForArray(double[] array, double target) {
+        int targetExponent = Maths.getBase10Exponent(target);
+        double targetMantissa = target / Math.pow(10, targetExponent);
 
-	/**
-	 * Calculates a "cost" for a single point by calculating some simple measure of
-	 * "distance" of the given point to the specified reference.
-	 * 
-	 * @param value          the point to calculate the cost respectively distance
-	 *                       for
-	 * @param targetMantissa the reference mantissa, between 1 and 9.99…
-	 * @param targetExponent the reference exponent
-	 * @return the "cost" or "distance"
-	 */
-	private static double calculateSimpleCostForSinglePoint(Number value, double targetMantissa, int targetExponent) {
-		// always between 0 and 308
-		int exponent = Math.abs(targetExponent - Maths.getBase10Exponent(value.doubleValue()));
-		
-		// always between 1.0 and 9.99...
-		double mantissa = Math.abs(targetMantissa - value.doubleValue() / Math.pow(10, targetExponent));
-		
-		return 0.1 * mantissa + exponent;
-	}
+        return Arrays.stream(array)
+                     .map(val -> calculateSimpleCostForSinglePoint(val, targetMantissa, targetExponent))
+                     .max()
+                     .orElse(Double.NaN);
+    }
 
     /**
-	 * Finds the potential transformations of the given unit, i.e., by a simple
-	 * change of the prefixes, if allowed.
-	 * 
-	 * @param unit the unit to check for alternative prefixes
-	 * @return for each different prefix its corresponding unit and the function to
-	 *         be applied to values to get to that unit.
-	 */
-	static Map<Unit, DoubleUnaryOperator> potentialTransformations(Unit unit) {
-		UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0)).values().toArray(UnitInfo[]::new);
+     * Calculates a "cost" for a single point by calculating some simple measure of
+     * "distance" of the given point to the specified reference.
+     * 
+     * @param value          the point to calculate the cost respectively distance
+     *                       for
+     * @param targetMantissa the reference mantissa, between 1 and 9.99…
+     * @param targetExponent the reference exponent
+     * @return the "cost" or "distance"
+     */
+    private static double calculateSimpleCostForSinglePoint(Number value, double targetMantissa, int targetExponent) {
+        // always between 0 and 308
+        int exponent = Math.abs(targetExponent - Maths.getBase10Exponent(value.doubleValue()));
 
-		int indexOfPrefixableUnit = IntStream.range(0, infos.length)
-		         .filter(index -> mayChangePrefix(infos[index].unit()))
-		         .findFirst()
-		         .orElse(-1);
+        // always between 1.0 and 9.99...
+        double mantissa = Math.abs(targetMantissa - value.doubleValue() / Math.pow(10, targetExponent));
 
-		if (indexOfPrefixableUnit == -1) {
-			// so no prefixable unit found -> return old unit
-			return Map.of(unit, DoubleUnaryOperator.identity());
-		}
+        return 0.1 * mantissa + exponent;
+    }
 
-		Map<Unit, DoubleUnaryOperator> transformations = new HashMap<>();
-		Set<UnitPrefix> allowedPrefixes = new HashSet<>(infos[indexOfPrefixableUnit].unit().prefixes());
-		
-		// make sure we have the identity prefix in there
-		allowedPrefixes.add(Units.IDENTITY_PREFIX);
-		
-		for (UnitPrefix prefix : allowedPrefixes) {
-			StringBuilder fullSymbol = new StringBuilder();
-			List<Unit> extraUnits = new ArrayList<>();
-			DoubleUnaryOperator func = null;
-			for (int i = 0; i < infos.length; i++) {
-				extraUnits.add(infos[i].unit());
-				if (i == indexOfPrefixableUnit) {
-				    Unit infoUnit = infos[i].unit();
-					// we need to find the symbol that allows to change the prefix, which might not
-					// be the first (think of "kg")
+    /**
+     * Finds the potential transformations of the given unit, i.e., by a simple
+     * change of the prefixes, if allowed.
+     * 
+     * @param unit the unit to check for alternative prefixes
+     * @return for each different prefix its corresponding unit and the function to
+     *         be applied to values to get to that unit.
+     */
+    static Map<Unit, DoubleUnaryOperator> potentialTransformations(Unit unit) {
+        UnitInfo[] infos = Units.collectInfo(unit.symbols().get(0)).values().toArray(UnitInfo[]::new);
+
+        int indexOfPrefixableUnit = IntStream.range(0, infos.length)
+                 .filter(index -> mayChangePrefix(infos[index].unit()))
+                 .findFirst()
+                 .orElse(-1);
+
+        if (indexOfPrefixableUnit == -1) {
+            // so no prefixable unit found -> return old unit
+            return Map.of(unit, DoubleUnaryOperator.identity());
+        }
+
+        Map<Unit, DoubleUnaryOperator> transformations = new HashMap<>();
+        Set<UnitPrefix> allowedPrefixes = new HashSet<>(infos[indexOfPrefixableUnit].unit().prefixes());
+
+        // make sure we have the identity prefix in there
+        allowedPrefixes.add(Units.IDENTITY_PREFIX);
+
+        for (UnitPrefix prefix : allowedPrefixes) {
+            StringBuilder fullSymbol = new StringBuilder();
+            List<Unit> extraUnits = new ArrayList<>();
+            DoubleUnaryOperator func = null;
+            for (int i = 0; i < infos.length; i++) {
+                extraUnits.add(infos[i].unit());
+                if (i == indexOfPrefixableUnit) {
+                    Unit infoUnit = infos[i].unit();
+                    // we need to find the symbol that allows to change the prefix, which might not
+                    // be the first (think of "kg")
                     String symbol = infoUnit.symbols().stream()
                             .filter(infoUnit::prefixAllowed)
                             .findFirst()
                             .orElseThrow(() -> new UnsupportedOperationException(infoUnit + " appears to have no prefixable symbol"));
 
                     symbol += infos[i].exponent() == 1 ? "" : "^" + infos[i].exponent();
-					
-					String symbolWithPrefix = prefix.symbols().get(0) + symbol;
-					fullSymbol.append(symbolWithPrefix);
-					Unit targetUnit = Unit.of(symbolWithPrefix, new Unit[] { infoUnit });
-					func = val -> Units.convert(val, unit, targetUnit);
-				} else {
-					String symbol = infos[i].symbol() + (infos[i].exponent() == 1 ? "" : "^" + infos[i].exponent());
-					fullSymbol.append(symbol);
-				}
-				fullSymbol.append(" ");
-			}
-			
-			transformations.put(Unit.of(fullSymbol.toString(), extraUnits.toArray(Unit[]::new)), func);
-		}
+                    
+                    String symbolWithPrefix = prefix.symbols().get(0) + symbol;
+                    fullSymbol.append(symbolWithPrefix);
+                    Unit targetUnit = Unit.of(symbolWithPrefix, new Unit[] { infoUnit });
+                    func = val -> Units.convert(val, unit, targetUnit);
+                } else {
+                    String symbol = infos[i].symbol() + (infos[i].exponent() == 1 ? "" : "^" + infos[i].exponent());
+                    fullSymbol.append(symbol);
+                }
+                fullSymbol.append(" ");
+            }
 
-		return Map.copyOf(transformations);
-	}
+            transformations.put(Unit.of(fullSymbol.toString(), extraUnits.toArray(Unit[]::new)), func);
+        }
+
+        return Map.copyOf(transformations);
+    }
 
     /**
      * Checks whether any of the symbols of a unit allows prefixes. Note that this
@@ -319,9 +319,9 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
      * @param unit the unit to check
      * @return true if any of the symbols allows a prefix
      */
-	private static boolean mayChangePrefix(Unit unit) {
-		return unit.symbols().stream().anyMatch(unit::prefixAllowed);
-	}
+    private static boolean mayChangePrefix(Unit unit) {
+        return unit.symbols().stream().anyMatch(unit::prefixAllowed);
+    }
 
     /**
      * Gets the components of the coordinate system record with updated axes of the
@@ -356,7 +356,7 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
         }
 
         var components = coords.getClass().getRecordComponents();
-        
+
         Object[] args = new Object[components.length];
         var coordAxes = coords.axes();
         for (int i = 0; i < components.length; i++) {
@@ -366,7 +366,7 @@ public sealed interface Quantity<T> permits Quantity0D, Quantity1D, Quantity2D {
                     arg = Axes.of(newAxes);
                 }
                 args[i] = arg;
-            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException("Cannot get " + components[i].getName(), e);
             }
         }

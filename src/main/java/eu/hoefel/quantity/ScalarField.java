@@ -140,9 +140,9 @@ public record ScalarField<T>(String name, SerializableFunction<T, Double> field,
             throw new UnsupportedOperationException(
                     "Currently only scalars, vectors and matrices can be applied to a scalar field.");
         }
-        
+
         Quantity<?> transformedPosition = position.to(position.name(), fieldInputCoords);
-        
+
         Class<?> classOfValue = Types.unboxedClass(transformedPosition.value().getClass());
         Class<?> fieldInputType = fieldInputType(field);
         if (classOfValue != fieldInputType && classOfValue != fieldInputType.arrayType()) {
@@ -150,7 +150,7 @@ public record ScalarField<T>(String name, SerializableFunction<T, Double> field,
                     + ", but the field can only handle " + fieldInputType.getSimpleName() + " or "
                     + fieldInputType.arrayType().getSimpleName() + " as input.");
         }
-        
+
         // TODO use pattern matching once available
         double[] scalars;
         if (transformedPosition instanceof Quantity0D q0d) {
@@ -170,7 +170,7 @@ public record ScalarField<T>(String name, SerializableFunction<T, Double> field,
         } else {
             throw new AssertionError("should never get here");
         }
-        
+
         return new Quantity1D(name, scalars, fieldOutputCoords);
     }
 }

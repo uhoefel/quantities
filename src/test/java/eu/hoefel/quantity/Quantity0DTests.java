@@ -15,17 +15,19 @@ import eu.hoefel.unit.Unit;
  * 
  * @author Udo
  */
+@SuppressWarnings("javadoc")
 class Quantity0DTests {
 
     @DisplayName("check input validation")
     @Test
     void testInputValidation() {
-        assertThrows(NullPointerException.class, () -> new Quantity0D(null, 12., new CartesianCoordinates(1)));
-        assertThrows(NullPointerException.class, () -> new Quantity0D("name", null, new CartesianCoordinates(1)));
+        var cc = new CartesianCoordinates(1);
+        assertThrows(NullPointerException.class, () -> new Quantity0D(null, 12., cc));
+        assertThrows(NullPointerException.class, () -> new Quantity0D("name", null, cc));
         assertThrows(NullPointerException.class, () -> new Quantity0D("name", 12., (CoordinateSystem) null));
         assertThrows(NullPointerException.class, () -> new Quantity0D("name", 12., (Unit) null));
     }
-    
+
     @DisplayName("apply")
     @Test
     void testApply() {
@@ -45,16 +47,16 @@ class Quantity0DTests {
         var quantityApproaching1 = quantity.approach(1);
         assertEquals(1.024, quantityApproaching1.value());
         assertEquals("Mg", quantityApproaching1.axis(0).unit().symbols().get(0));
-        
+
         var quantityApproaching1024 = quantityApproaching1.approach(1024);
         assertEquals(1024, quantityApproaching1024.value());
         assertEquals("kg", quantityApproaching1024.axis(0).unit().symbols().get(0));
-        
+
         quantity = new Quantity0D(3.0e-2, Unit.of("m^2"));
         quantityApproaching1 = quantity.approach(1);
         assertEquals(3, quantityApproaching1.value(), 1e-15);
         assertEquals("dm^2", quantityApproaching1.axis(0).unit().symbols().get(0));
-        
+
         quantity = new Quantity0D(3.0e2, Unit.of("m^-2"));
         quantityApproaching1 = quantity.approach(1);
         assertEquals(3, quantityApproaching1.value(), 1e-15);

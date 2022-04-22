@@ -21,14 +21,9 @@ module eu.hoefel.quantity {
     exports eu.hoefel.quantity;
     exports eu.hoefel.quantity.function;
 
-    // ugh...
-    opens eu.hoefel.quantity to org.junit.platform.commons;
-
     requires transitive eu.hoefel.coordinates;
     requires transitive eu.hoefel.unit;
     requires transitive eu.hoefel.jatex;
 
     requires eu.hoefel.utils;
-
-    requires org.junit.jupiter.api;
 }

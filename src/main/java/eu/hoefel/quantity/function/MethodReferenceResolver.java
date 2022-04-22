@@ -20,29 +20,29 @@ import eu.hoefel.utils.Types;
  * @author Udo Hoefel
  */
 public sealed interface MethodReferenceResolver extends Serializable {
-	
-	/**
-	 * Represents a function that accepts one argument and produces a result.
-	 * 
-	 * <p>
-	 * Note that this functional interface is intended to be used with method
-	 * references.
-	 * 
-	 * @param <T> the type of the input to the function
-	 * @param <U> the type of the result of the function
-	 */
-	// TODO this should be in its own class, but then the compilation fails (╯°□°)╯︵ ┻━┻
-	@FunctionalInterface
-	public non-sealed static interface SerializableFunction<T, U> extends Function<T, U>, MethodReferenceResolver {
-	    // nothing to add here, the method to be implemented is in Function, and the
-	    // MethodReferenceResolver has default implementations which are fine
-	}
 
-	/**
-	 * Gets the serialized representation of the method reference.
-	 * 
-	 * @return the serialized method reference
-	 */
+    /**
+     * Represents a function that accepts one argument and produces a result.
+     * 
+     * <p>
+     * Note that this functional interface is intended to be used with method
+     * references.
+     * 
+     * @param <T> the type of the input to the function
+     * @param <U> the type of the result of the function
+     */
+    // TODO this should be in its own class, but then the compilation fails (╯°□°)╯︵ ┻━┻
+    @FunctionalInterface
+    public static non-sealed interface SerializableFunction<T, U> extends Function<T, U>, MethodReferenceResolver {
+        // nothing to add here, the method to be implemented is in Function, and the
+        // MethodReferenceResolver has default implementations which are fine
+    }
+
+    /**
+     * Gets the serialized representation of the method reference.
+     * 
+     * @return the serialized method reference
+     */
     default SerializedLambda serialized() {
         if (MethodReferenceResolverCache.serializationCache.size() > MethodReferenceResolverCache.MAX_CACHE_SIZE) {
             MethodReferenceResolverCache.serializationCache.clear();
@@ -62,8 +62,8 @@ public sealed interface MethodReferenceResolver extends Serializable {
      *                        getting the writeReplace method reflectively and
      *                        invoking it
      */
-	private SerializedLambda serializeMethodReferenceResolver() {
-	    try {
+    private SerializedLambda serializeMethodReferenceResolver() {
+        try {
             Method replaceMethod = getClass().getDeclaredMethod("writeReplace");
             if (!replaceMethod.trySetAccessible()) {
                 throw new AssertionError("Cannot access method necessary to serialize method reference!");
@@ -72,77 +72,77 @@ public sealed interface MethodReferenceResolver extends Serializable {
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new AssertionError(e);
         }
-	}
+    }
 
-	/**
-	 * Gets the method corresponding to the serialized lambda. Works correctly for
-	 * arbitrarily overloaded methods.
-	 * 
-	 * @param lambda the serialized lambda, not null.
-	 * @return the method
-	 */
-	public static Method method(SerializedLambda lambda) {
-	    Objects.requireNonNull(lambda);
+    /**
+     * Gets the method corresponding to the serialized lambda. Works correctly for
+     * arbitrarily overloaded methods.
+     * 
+     * @param lambda the serialized lambda, not null.
+     * @return the method
+     */
+    public static Method method(SerializedLambda lambda) {
+        Objects.requireNonNull(lambda);
 
-		Class<?> containingClass = lambda.getCapturedArg(0).getClass();
-		String methodSignature = lambda.getImplMethodSignature();
+        Class<?> containingClass = lambda.getCapturedArg(0).getClass();
+        String methodSignature = lambda.getImplMethodSignature();
 
-		return Arrays.stream(containingClass.getMethods())
-				.filter(method -> Objects.equals(method.getName(), lambda.getImplMethodName()))
-				.filter(method -> Objects.equals(methodSignature, toSignature(method)))
-				.findAny() // can only be one
-				.orElseThrow(UnresolvableMethodException::new);
-	}
+        return Arrays.stream(containingClass.getMethods())
+                .filter(method -> Objects.equals(method.getName(), lambda.getImplMethodName()))
+                .filter(method -> Objects.equals(methodSignature, toSignature(method)))
+                .findAny() // can only be one
+                .orElseThrow(UnresolvableMethodException::new);
+    }
 
-	/**
-	 * Converts the method to its signature.
-	 * 
-	 * @param m the method
-	 * @return the signature of the method
-	 */
-	private static String toSignature(Method m) {
-		StringBuilder sb = new StringBuilder("(");
-		for (var param : m.getParameterTypes()) {
-			sb.append(toName(param));
-		}
-		sb.append(")");
-		sb.append(toName(m.getReturnType()));
-		return sb.toString();
-	}
+    /**
+     * Converts the method to its signature.
+     * 
+     * @param m the method
+     * @return the signature of the method
+     */
+    private static String toSignature(Method m) {
+        StringBuilder sb = new StringBuilder("(");
+        for (var param : m.getParameterTypes()) {
+            sb.append(toName(param));
+        }
+        sb.append(")");
+        sb.append(toName(m.getReturnType()));
+        return sb.toString();
+    }
 
-	/**
-	 * Converts the class to the name used e.g. in signatures.
-	 * 
-	 * @param clazz the class
-	 * @return the name of the class as used in e.g. signatures
-	 */
-	private static String toName(Class<?> clazz) {
-		if (clazz == boolean.class) {
-			return "Z";
-		} else if (clazz == byte.class) {
-			return "B";
-		} else if (clazz == char.class) {
-			return "C";
-		} else if (clazz == short.class) {
-			return "S";
-		} else if (clazz == int.class) {
-			return "I";
-		} else if (clazz == long.class) {
-			return "J";
-		} else if (clazz == float.class) {
-			return "F";
-		} else if (clazz == double.class) {
-			return "D";
-		} else if (clazz == void.class) {
-			return "V";
-		} else if (clazz.isArray()) {
-		    Class<?> elementType = Types.elementType(clazz);
+    /**
+     * Converts the class to the name used e.g. in signatures.
+     * 
+     * @param clazz the class
+     * @return the name of the class as used in e.g. signatures
+     */
+    private static String toName(Class<?> clazz) {
+        if (clazz == boolean.class) {
+            return "Z";
+        } else if (clazz == byte.class) {
+            return "B";
+        } else if (clazz == char.class) {
+            return "C";
+        } else if (clazz == short.class) {
+            return "S";
+        } else if (clazz == int.class) {
+            return "I";
+        } else if (clazz == long.class) {
+            return "J";
+        } else if (clazz == float.class) {
+            return "F";
+        } else if (clazz == double.class) {
+            return "D";
+        } else if (clazz == void.class) {
+            return "V";
+        } else if (clazz.isArray()) {
+            Class<?> elementType = Types.elementType(clazz);
             int dimension = Types.dimension(clazz);
             return "[".repeat(dimension) + toName(elementType);
         } else if (!clazz.isPrimitive()) {
-		    return "L" + clazz.getCanonicalName().replace('.', '/') + ";";
-		}
-		
-		throw new AssertionError("This should be unreachable!");
-	}
+            return "L" + clazz.getCanonicalName().replace('.', '/') + ";";
+        }
+
+        throw new AssertionError("This should be unreachable!");
+    }
 }

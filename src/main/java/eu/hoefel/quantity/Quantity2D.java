@@ -157,19 +157,6 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
 
     /**
      * {@inheritDoc}
-     * <p>
-     * Note that in contrast to the standard record {@link Record#toString}
-     * implementation the {@code value} is not represented by its memory address but
-     * rather via {@link Arrays#deepToString(Object[])}.
-     */
-    @Override
-    public String toString() {
-        return Quantity2D.class.getSimpleName() + "[name=" + name + ", value=" + Arrays.deepToString(value) + ", coords="
-                + coords + "]";
-    }
-
-    /**
-     * {@inheritDoc}
      * 
      * <p>
      * The order of the data tensors contained in a {@link Quantity2D} is either 2,
@@ -183,7 +170,7 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
             default -> 1;
         };
     }
-    
+
     @Override
     public Quantity<double[][]> to(String name, CoordinateSystem coords) {
         Objects.requireNonNull(name);
@@ -199,7 +186,7 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
     public Quantity2D apply(DoubleUnaryOperator function, String name) {
         Objects.requireNonNull(function);
         Objects.requireNonNull(name);
-        
+
         double[][] newValues = Stream.of(value)
                                      .map(val -> Arrays.stream(val).map(function))
                                      .toArray(double[][]::new);
@@ -234,11 +221,11 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
         }
 
         var coordSymbol = coords.symbols().get(0);
-        Set<Class<? extends CoordinateSystem>> coordClass = Set.of(coords.getClass());
-        
+        var coordClass = Set.of(coords.getClass());
+
         // the coord sys record may have additional parameters that we have to respect
         Object[] args = Quantity.argsWithNewUnitsOnAxes(coords, axes);
-        
+
         return new Quantity2D(name, Maths.transpose(vals), CoordinateSystem.from(coordSymbol, coordClass, args));
     }
 
@@ -256,5 +243,40 @@ public record Quantity2D(String name, double[][] value, CoordinateSystem coords)
         return Stream.of(numberValues)
                      .map(value -> Quantity1D.transform1D(value, coords, target))
                      .toArray(double[][]::new);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.deepHashCode(value);
+        result = prime * result + Objects.hash(coords, name);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Quantity2D)) {
+            return false;
+        }
+        Quantity2D other = (Quantity2D) obj;
+        return Objects.equals(coords, other.coords) && Objects.equals(name, other.name)
+                && Arrays.deepEquals(value, other.value);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Note that in contrast to the standard record {@link Record#toString}
+     * implementation the {@code value} is not represented by its memory address but
+     * rather via {@link Arrays#deepToString(Object[])}.
+     */
+    @Override
+    public String toString() {
+        return Quantity2D.class.getSimpleName() + "[name=" + name + ", value=" + Arrays.deepToString(value) + ", coords="
+                + coords + "]";
     }
 }

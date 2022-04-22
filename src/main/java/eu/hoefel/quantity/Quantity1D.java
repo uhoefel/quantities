@@ -119,30 +119,17 @@ public record Quantity1D(String name, double[] value, CoordinateSystem coords) i
         Objects.requireNonNull(quantities);
 
         Quantity0D refQuantity = Arrays.stream(quantities)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("No valid Quantity0D given!"));
+                                       .filter(Objects::nonNull)
+                                       .findFirst()
+                                       .orElseThrow(() -> new NoSuchElementException("No valid Quantity0D given!"));
 
         double[] newValues = Arrays.stream(quantities)
-                .filter(Objects::nonNull)
-                .map(q -> q.to(q.name(), refQuantity.coords()))
-                .mapToDouble(Quantity::value)
-                .toArray();
-        
-        return new Quantity1D(refQuantity.name(), newValues, refQuantity.coords());
-    }
+                                   .filter(Objects::nonNull)
+                                   .map(q -> q.to(q.name(), refQuantity.coords()))
+                                   .mapToDouble(Quantity::value)
+                                   .toArray();
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Note that in contrast to the standard record {@link Record#toString}
-     * implementation the array is not represented by its memory address but rather
-     * via {@link Arrays#toString(double[])}.
-     */
-    @Override
-    public String toString() {
-        return Quantity1D.class.getSimpleName() + "[name=" + name + ", value=" + Arrays.toString(value) + ", coords="
-                + coords + "]";
+        return new Quantity1D(refQuantity.name(), newValues, refQuantity.coords());
     }
 
     /**
@@ -247,13 +234,13 @@ public record Quantity1D(String name, double[] value, CoordinateSystem coords) i
             }
         }
         axis = new Axis(0, unit, axis.name());
-        
+
         var coordSymbol = coords.symbols().get(0);
-        Set<Class<? extends CoordinateSystem>> coordClass = Set.of(coords.getClass());
-        
+        var coordClass = Set.of(coords.getClass());
+
         // the coord sys record may have additional parameters that we have to respect
         Object[] args = Quantity.argsWithNewUnitsOnAxes(coords, axis);
-        
+
         return new Quantity1D(name, transformedValues, CoordinateSystem.from(coordSymbol, coordClass, args));
     }
 
@@ -277,7 +264,6 @@ public record Quantity1D(String name, double[] value, CoordinateSystem coords) i
         for (int i = 0; i < dimension; i++) {
             Axis axis = coords.axis(i);
             Unit unit = axis.unit();
-            System.out.println(unit);
             double cost = Double.POSITIVE_INFINITY;
 
             var trafos = Quantity.potentialTransformations(unit);
@@ -294,13 +280,48 @@ public record Quantity1D(String name, double[] value, CoordinateSystem coords) i
 
             newAxes[i] = new Axis(i, unit, axis.name());
         }
-        
+
         var coordSymbol = coords.symbols().get(0);
-        Set<Class<? extends CoordinateSystem>> coordClass = Set.of(coords.getClass());
-        
+        var coordClass = Set.of(coords.getClass());
+
         // the coord sys record may have additional parameters that we have to respect
         Object[] args = Quantity.argsWithNewUnitsOnAxes(coords, newAxes);
-        
+
         return new Quantity1D(name, vals, CoordinateSystem.from(coordSymbol, coordClass, args));
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.hashCode(value);
+        result = prime * result + Objects.hash(coords, name);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Quantity1D)) {
+            return false;
+        }
+        Quantity1D other = (Quantity1D) obj;
+        return Objects.equals(coords, other.coords) && Objects.equals(name, other.name)
+                && Arrays.equals(value, other.value);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Note that in contrast to the standard record {@link Record#toString}
+     * implementation the array is not represented by its memory address but rather
+     * via {@link Arrays#toString(double[])}.
+     */
+    @Override
+    public String toString() {
+        return Quantity1D.class.getSimpleName() + "[name=" + name + ", value=" + Arrays.toString(value) + ", coords="
+                + coords + "]";
     }
 }

@@ -16,13 +16,15 @@ import eu.hoefel.coordinates.CoordinateSystem;
 import eu.hoefel.unit.Unit;
 
 /** Tests for {@link Quantity2D}. */
+@SuppressWarnings("javadoc")
 class Quantity2DTests {
-    
+
     @DisplayName("check input validation")
     @Test
     void testInputValidation() {
-        assertThrows(NullPointerException.class, () -> new Quantity2D(null, new double[][] {{ 12. }}, new CartesianCoordinates(1)));
-        assertThrows(NullPointerException.class, () -> new Quantity2D("name", null, new CartesianCoordinates(1)));
+        var cc = new CartesianCoordinates(1);
+        assertThrows(NullPointerException.class, () -> new Quantity2D(null, new double[][] {{ 12. }}, cc));
+        assertThrows(NullPointerException.class, () -> new Quantity2D("name", null, cc));
         assertThrows(NullPointerException.class, () -> new Quantity2D("name", new double[][] {{ 12. }}, (CoordinateSystem) null));
     }
 
@@ -45,17 +47,17 @@ class Quantity2DTests {
         var q1 = new Quantity1D(new double[] { 22 }, Unit.of("m"));
         var q2 = new Quantity1D(new double[] { 45122 }, Unit.of("nm"));
         var q3 = new Quantity1D(new double[] { 0.0002 }, Unit.of("Gm"));
-        
+
         var result = assertDoesNotThrow(() -> Quantity2D.from(q0, q1, q2, q3));
         assertEquals("length of ruler", result.name());
         assertArrayEquals(new double[][] { { 12 }, { 22 }, { 4.5122000000000006e-5 }, { 2e5 } }, result.value());
         assertEquals(Unit.of("m"), result.coords().axis(0).unit());
 
         assertThrows(NullPointerException.class, () -> Quantity2D.from((Quantity1D[]) null));
-        
+
         assertThrows(NoSuchElementException.class, () -> Quantity2D.from(new Quantity1D[] { null }));
         assertThrows(NoSuchElementException.class, () -> Quantity2D.from());
-        
+
         assertDoesNotThrow(() -> Quantity2D.from(null, q0, q1, q2, q3));
     }
 }

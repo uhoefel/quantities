@@ -36,10 +36,10 @@ The artifact can be found at maven central:
 <dependency>
     <groupId>eu.hoefel</groupId>
     <artifactId>quantities</artifactId>
-    <version>0.9.0</version>
+    <version>0.10.0</version>
 </dependency>
 ```
 
 Requirements
 ============
-Quantities is designed to work with Java 17+. It needs preview-features enabled for Java 16+.
+Quantities is designed to work with Java 17+.
