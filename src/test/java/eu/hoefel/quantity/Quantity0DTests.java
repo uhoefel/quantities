@@ -43,7 +43,7 @@ class Quantity0DTests {
     @DisplayName("approach")
     @Test
     void testApproach() {
-        var quantity = new Quantity0D(1024, Unit.of("kg"));
+        var quantity = new Quantity0D(1.024e6, Unit.of("g"));
         var quantityApproaching1 = quantity.approach(1);
         assertEquals(1.024, quantityApproaching1.value());
         assertEquals("Mg", quantityApproaching1.axis(0).unit().symbols().get(0));
