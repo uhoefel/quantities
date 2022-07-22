@@ -24,7 +24,7 @@ Some of the supported features include:
   ```
 - Approach target values by changing unit prefixes on the axes (useful e.g. for autoranging for optimizers). For example
   ```java
-  var quantity = new Quantity0D(1024, Unit.of("kg"));
+  var quantity = new Quantity0D(1.024e6, Unit.of("g"));
   var quantityApproaching1 = quantity.approach(1); // 1.024 Mg
   ```
 
