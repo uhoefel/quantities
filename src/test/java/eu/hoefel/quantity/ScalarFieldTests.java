@@ -43,8 +43,8 @@ class ScalarFieldTests {
         var q1d = new Quantity1D(new double[] {1,5,7}, Unit.of("m"));
         assertArrayEquals(new double[] {2,10,14}, scalarField.apply(q1d).value());
 
-        SerializableFunction<double[], Double> field2 = o -> DoubleStream.of(o).map(val -> ((double) val) * 1.5).sum();
-        var scalarField2 = new ScalarField<double[]>("magnitude of B", field2, new CartesianCoordinates(2), new CartesianCoordinates(1));
+        SerializableFunction<double[], Double> field2 = o -> DoubleStream.of(o).map(val -> 1.5*val).sum();
+        var scalarField2 = new ScalarField<>("magnitude of B", field2, new CartesianCoordinates(2), new CartesianCoordinates(1));
  
         Quantity2D q2d = new Quantity2D(new double[][] {{1,5},{3,5}}, Unit.of("m"), Unit.of("m"));
         assertArrayEquals(new double[] {9,12}, scalarField2.apply(q2d).value());

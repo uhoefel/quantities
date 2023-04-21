@@ -44,7 +44,7 @@ class VectorFieldTests {
         var q1d = new Quantity1D(new double[] {1,5,7}, Unit.of("m"));
         assertArrayEquals(new double[][] {{1,2},{5,10},{7,14}}, vectorField.apply(q1d).value());
 
-        SerializableFunction<double[], double[]> field2 = o -> new double[] { 1, DoubleStream.of(o).map(val -> ((double) val) * 1.5).sum() };
+        SerializableFunction<double[], double[]> field2 = o -> new double[] { 1, DoubleStream.of(o).map(val -> 1.5*val).sum() };
         var vectorField2 = new VectorField<double[]>("magnitude of B", field2, new CartesianCoordinates(2), new CartesianCoordinates(2));
 
         Quantity2D q2d = new Quantity2D(new double[][] {{1,5},{3,5}}, Unit.of("m"), Unit.of("m"));
