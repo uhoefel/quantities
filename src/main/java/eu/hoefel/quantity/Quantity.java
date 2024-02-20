@@ -32,8 +32,8 @@ import eu.hoefel.utils.Maths;
  * coordinate system instead of just a unit is that more metadata is conveyed by
  * the former, opening the avenue to, e.g., more automated plotting.
  * 
- * @apiNote All implementing classes should be immutable and may be changed to
- *          value classes once project Valhalla is ready.
+ * @quantities.apiNote All implementing classes should be immutable and may be
+ *                     changed to value classes once project Valhalla is ready.
  * @author Udo Hoefel
  * @param <T> the type of the contained numerical values. May be a Double,
  *            double[] or double[][]. This may change in the future to support

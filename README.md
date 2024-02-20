@@ -36,7 +36,7 @@ The artifact can be found at maven central:
 <dependency>
     <groupId>eu.hoefel</groupId>
     <artifactId>quantities</artifactId>
-    <version>0.10.1</version>
+    <version>0.10.2</version>
 </dependency>
 ```
 

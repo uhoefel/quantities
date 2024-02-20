@@ -22,15 +22,15 @@ class VectorFieldTests {
         SerializableFunction<Double, double[]> func = val -> new double[] { val * 2 };
         var coords1D = new CartesianCoordinates(1);
         var coords2D = new CartesianCoordinates(2);
-        assertThrows(NullPointerException.class, () -> new VectorField<Double>(null, func, coords1D, coords2D));
+        assertThrows(NullPointerException.class, () -> new VectorField<>(null, func, coords1D, coords2D));
         assertThrows(NullPointerException.class, () -> new VectorField<Double>("name", null, coords1D, coords2D));
-        assertThrows(NullPointerException.class, () -> new VectorField<Double>("name", func, null, coords2D));
-        assertThrows(NullPointerException.class, () -> new VectorField<Double>("name", func, coords2D, null));
+        assertThrows(NullPointerException.class, () -> new VectorField<>("name", func, null, coords2D));
+        assertThrows(NullPointerException.class, () -> new VectorField<>("name", func, coords2D, null));
 
-        assertThrows(IllegalArgumentException.class, () -> new VectorField<Double>("name", func, coords1D, coords1D));
+        assertThrows(IllegalArgumentException.class, () -> new VectorField<>("name", func, coords1D, coords1D));
 
         assertThrows(IllegalArgumentException.class, () -> new VectorField<Float>("name", val -> new double[] { val * 2 }, coords1D, coords2D));
-        assertThrows(IllegalArgumentException.class, () -> new VectorField<Double>("name", func, coords2D, coords2D));
+        assertThrows(IllegalArgumentException.class, () -> new VectorField<>("name", func, coords2D, coords2D));
     }
 
     @DisplayName("approach")
@@ -45,7 +45,7 @@ class VectorFieldTests {
         assertArrayEquals(new double[][] {{1,2},{5,10},{7,14}}, vectorField.apply(q1d).value());
 
         SerializableFunction<double[], double[]> field2 = o -> new double[] { 1, DoubleStream.of(o).map(val -> 1.5*val).sum() };
-        var vectorField2 = new VectorField<double[]>("magnitude of B", field2, new CartesianCoordinates(2), new CartesianCoordinates(2));
+        var vectorField2 = new VectorField<>("magnitude of B", field2, new CartesianCoordinates(2), new CartesianCoordinates(2));
 
         Quantity2D q2d = new Quantity2D(new double[][] {{1,5},{3,5}}, Unit.of("m"), Unit.of("m"));
         assertArrayEquals(new double[][] {{1,9},{1,12}}, vectorField2.apply(q2d).value());
